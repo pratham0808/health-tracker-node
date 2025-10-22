@@ -29,5 +29,6 @@ const ExerciseSchema = new Schema({
   }
 });
 
+
 export default mongoose.model<IExercise>('Exercise', ExerciseSchema);
 
