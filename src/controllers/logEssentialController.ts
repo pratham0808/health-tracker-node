@@ -35,7 +35,23 @@ export class LogEssentialController {
   async createOrUpdateLogEssential(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.userId!;
-      const { date, waterIntake, steps } = req.body;
+      const { 
+        date, 
+        waterIntake, 
+        steps,
+        caloriesConsumed,
+        caloriesBurned,
+        sleepHours,
+        sleepQuality,
+        weight,
+        mood,
+        energy,
+        bodyFatPercentage,
+        muscleMass,
+        waistCircumference,
+        supplements,
+        habits
+      } = req.body;
       
       if (!date) {
         res.status(400).json({ error: 'Date is required' });
@@ -45,7 +61,19 @@ export class LogEssentialController {
       const logEssential = await logEssentialService.createOrUpdateLogEssential(userId, {
         date,
         waterIntake,
-        steps
+        steps,
+        caloriesConsumed,
+        caloriesBurned,
+        sleepHours,
+        sleepQuality,
+        weight,
+        mood,
+        energy,
+        bodyFatPercentage,
+        muscleMass,
+        waistCircumference,
+        supplements,
+        habits
       });
       
       res.json(logEssential);
