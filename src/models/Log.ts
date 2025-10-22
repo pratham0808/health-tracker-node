@@ -2,9 +2,10 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ILog extends Document {
   userId: mongoose.Types.ObjectId;
-  exerciseId: mongoose.Types.ObjectId;
+  exerciseId: string;
+  categoryId: string;
   exerciseName: string;
-  category: 'arms' | 'core' | 'thighs' | 'back';
+  category: string;
   date: Date;
   reps?: number;
   count?: number;
@@ -18,8 +19,11 @@ const LogSchema = new Schema({
     required: true
   },
   exerciseId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Exercise',
+    type: String,
+    required: true
+  },
+  categoryId: {
+    type: String,
     required: true
   },
   exerciseName: {
@@ -28,8 +32,7 @@ const LogSchema = new Schema({
   },
   category: {
     type: String,
-    required: true,
-    enum: ['arms', 'core', 'thighs', 'back']
+    required: true
   },
   date: {
     type: Date,

@@ -1,4 +1,5 @@
 import Log from '../models/Log';
+import ExerciseGroups from '../models/ExerciseGroups';
 import moment from 'moment';
 
 export interface DailyStats {
@@ -7,7 +8,10 @@ export interface DailyStats {
 }
 
 export interface ExerciseStats {
+  exerciseId: string;
   exerciseName: string;
+  categoryId: string;
+  categoryName: string;
   dailyData: { [date: string]: DailyStats };
   totals: DailyStats;
   lifetimeAverage: {
@@ -32,24 +36,27 @@ export interface OverallStats {
 }
 
 export class StatsService {
-  async getEnhancedStats(userId: string, days: number = 7, category?: string): Promise<{ exercises: ExerciseStats[]; overall: OverallStats }> {
+  async getEnhancedStats(userId: string, days: number = 7, categoryId?: string): Promise<{ exercises: ExerciseStats[]; overall: OverallStats }> {
     const periodEnd = moment().format('YYYY-MM-DD');
     const periodStart = moment().subtract(days - 1, 'days').format('YYYY-MM-DD');
     
     // Get logs for selected period and all-time
-    const periodLogs = await this.getLogsForPeriod(userId, periodStart, periodEnd, category);
-    const allTimeLogs = await this.getAllLogs(userId, category);
+    const periodLogs = await this.getLogsForPeriod(userId, periodStart, periodEnd, categoryId);
+    const allTimeLogs = await this.getAllLogs(userId, categoryId);
+    
+    // Get exercise groups to map IDs to names
+    const exerciseGroups = await ExerciseGroups.findOne({ userId });
     
     // Calculate streaks and overall stats
     const overall = await this.calculateOverallStats(userId, periodLogs, allTimeLogs, days);
     
     // Process exercise stats
-    const exercises = this.processExerciseStats(periodLogs, allTimeLogs, days);
+    const exercises = this.processExerciseStats(periodLogs, allTimeLogs, days, exerciseGroups);
     
     return { exercises, overall };
   }
 
-  private async getLogsForPeriod(userId: string, startDate: string, endDate: string, category?: string) {
+  private async getLogsForPeriod(userId: string, startDate: string, endDate: string, categoryId?: string) {
     const query: any = {
       userId,
       date: {
@@ -58,31 +65,52 @@ export class StatsService {
       }
     };
     
-    if (category) {
-      query.category = category;
+    if (categoryId) {
+      query.categoryId = categoryId;
     }
     
     return await Log.find(query).sort({ date: 1 });
   }
 
-  private async getAllLogs(userId: string, category?: string) {
+  private async getAllLogs(userId: string, categoryId?: string) {
     const query: any = { userId };
-    if (category) {
-      query.category = category;
+    if (categoryId) {
+      query.categoryId = categoryId;
     }
     return await Log.find(query).sort({ date: 1 });
   }
 
-  private processExerciseStats(periodLogs: any[], allTimeLogs: any[], days: number): ExerciseStats[] {
+  private processExerciseStats(periodLogs: any[], allTimeLogs: any[], days: number, exerciseGroups: any): ExerciseStats[] {
     const exerciseMap = new Map<string, ExerciseStats>();
+    
+    // Create a map of exerciseId to exercise info for quick lookup
+    const exerciseInfoMap = new Map<string, { exerciseName: string; categoryId: string; categoryName: string }>();
+    
+    if (exerciseGroups) {
+      exerciseGroups.categories.forEach((category: any) => {
+        category.exercises.forEach((exercise: any) => {
+          exerciseInfoMap.set(exercise._id.toString(), {
+            exerciseName: exercise.exerciseName,
+            categoryId: category._id.toString(),
+            categoryName: category.categoryName
+          });
+        });
+      });
+    }
     
     // Process current period logs
     periodLogs.forEach(log => {
       const logDate = moment(log.date).format('YYYY-MM-DD');
+      const exerciseInfo = exerciseInfoMap.get(log.exerciseId);
       
-      if (!exerciseMap.has(log.exerciseName)) {
-        exerciseMap.set(log.exerciseName, {
-          exerciseName: log.exerciseName,
+      if (!exerciseInfo) return; // Skip if exercise not found in groups
+      
+      if (!exerciseMap.has(log.exerciseId)) {
+        exerciseMap.set(log.exerciseId, {
+          exerciseId: log.exerciseId,
+          exerciseName: exerciseInfo.exerciseName,
+          categoryId: exerciseInfo.categoryId,
+          categoryName: exerciseInfo.categoryName,
           dailyData: {},
           totals: { reps: 0, count: 0 },
           lifetimeAverage: { reps: 0, count: 0 },
@@ -91,7 +119,7 @@ export class StatsService {
         });
       }
       
-      const exercise = exerciseMap.get(log.exerciseName)!;
+      const exercise = exerciseMap.get(log.exerciseId)!;
       
       if (!exercise.dailyData[logDate]) {
         exercise.dailyData[logDate] = { reps: 0, count: 0 };
@@ -105,8 +133,8 @@ export class StatsService {
     });
     
     // Calculate lifetime averages
-    exerciseMap.forEach((exercise, name) => {
-      const exerciseLogs = allTimeLogs.filter((log: any) => log.exerciseName === name);
+    exerciseMap.forEach((exercise, exerciseId) => {
+      const exerciseLogs = allTimeLogs.filter((log: any) => log.exerciseId === exerciseId);
       
       if (exerciseLogs.length > 0) {
         // Get all dates and sort them
@@ -185,7 +213,7 @@ export class StatsService {
     const uniquePeriodDays = new Set(periodLogs.map(log => moment(log.date).format('YYYY-MM-DD')));
     
     // Count unique exercises in period
-    const uniqueExercises = new Set(periodLogs.map(log => log.exerciseName));
+    const uniqueExercises = new Set(periodLogs.map(log => log.exerciseId));
     
     return {
       currentStreak: streaks.current,

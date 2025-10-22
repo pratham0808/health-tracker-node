@@ -7,14 +7,14 @@ const statsService = new StatsService();
 export const getStats = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId!;
-    const { category, days } = req.query;
+    const { categoryId, days } = req.query;
     
     const daysNumber = days ? parseInt(days as string) : 7;
 
     const stats = await statsService.getEnhancedStats(
       userId,
       daysNumber,
-      category as string | undefined
+      categoryId as string | undefined
     );
     
     res.json(stats);

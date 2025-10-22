@@ -6,7 +6,18 @@ export interface IUser extends Document {
   lastname: string;
   email: string;
   password: string;
+  // Profile fields
+  weight?: number;
+  height?: number;
+  age?: number;
+  gender?: 'male' | 'female' | 'other';
+  fitnessLevel?: 'beginner' | 'intermediate' | 'advanced';
+  goals?: string[];
+  // Essential goals
+  waterGoal?: number; // liters per day
+  stepsGoal?: number; // steps per day
   createdAt: Date;
+  updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -33,13 +44,56 @@ const UserSchema = new Schema({
     required: true,
     minlength: 6
   },
+  // Profile fields
+  weight: {
+    type: Number,
+    min: 0
+  },
+  height: {
+    type: Number,
+    min: 0
+  },
+  age: {
+    type: Number,
+    min: 0,
+    max: 150
+  },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other']
+  },
+  fitnessLevel: {
+    type: String,
+    enum: ['beginner', 'intermediate', 'advanced']
+  },
+  goals: [{
+    type: String
+  }],
+  // Essential goals
+  waterGoal: {
+    type: Number,
+    min: 0,
+    default: 3
+  },
+  stepsGoal: {
+    type: Number,
+    min: 0,
+    default: 10000
+  },
   createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
     type: Date,
     default: Date.now
   }
 });
 
 UserSchema.pre<IUser>('save', async function(next) {
+  // Update updatedAt field
+  this.updatedAt = new Date();
+  
   if (!this.isModified('password')) return next();
   
   try {

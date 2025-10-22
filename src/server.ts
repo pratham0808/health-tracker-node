@@ -6,6 +6,10 @@ import authRoutes from './routes/authRoutes';
 import exerciseRoutes from './routes/exerciseRoutes';
 import logRoutes from './routes/logRoutes';
 import statsRoutes from './routes/statsRoutes';
+import exerciseGroupsRoutes from './routes/exerciseGroupsRoutes';
+import profileRoutes from './routes/profileRoutes';
+import logEssentialRoutes from './routes/logEssentialRoutes';
+import aiRoutes from './routes/aiRoutes';
 import { authMiddleware } from './middleware/authMiddleware';
 
 dotenv.config();
@@ -20,6 +24,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/exercises', authMiddleware, exerciseRoutes);
 app.use('/api/logs', authMiddleware, logRoutes);
 app.use('/api/stats', authMiddleware, statsRoutes);
+app.use('/api/exercise-groups', authMiddleware, exerciseGroupsRoutes);
+app.use('/api/profile', authMiddleware, profileRoutes);
+app.use('/api/log-essentials', authMiddleware, logEssentialRoutes);
+app.use('/api/ai', authMiddleware, aiRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Health Tracker API is running' });

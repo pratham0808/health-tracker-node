@@ -8,11 +8,11 @@ export class LogController {
   async getAll(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.userId!;
-      const { date, category } = req.query;
+      const { date, categoryId } = req.query;
       
       let logs;
-      if (date && category) {
-        logs = await logService.getLogsByDateAndCategory(userId, date as string, category as string);
+      if (date && categoryId) {
+        logs = await logService.getLogsByDateAndCategoryId(userId, date as string, categoryId as string);
       } else if (date) {
         logs = await logService.getLogsByDate(userId, date as string);
       } else {
@@ -28,15 +28,16 @@ export class LogController {
   async create(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.userId!;
-      const { exerciseId, exerciseName, category, date, reps, time, count } = req.body;
+      const { exerciseId, categoryId, exerciseName, category, date, reps, time, count } = req.body;
       
-      if (!exerciseId || !exerciseName || !category || !date) {
+      if (!exerciseId || !categoryId || !exerciseName || !category || !date) {
         res.status(400).json({ error: 'Missing required fields' });
         return;
       }
 
       const log = await logService.createLog(userId, {
         exerciseId,
+        categoryId,
         exerciseName,
         category,
         date,

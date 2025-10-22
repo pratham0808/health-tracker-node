@@ -32,8 +32,23 @@ export class LogService {
     }).sort({ createdAt: -1 });
   }
 
+  async getLogsByDateAndCategoryId(userId: string, date: string, categoryId: string): Promise<ILog[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return await Log.find({
+      userId,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      categoryId
+    }).sort({ createdAt: -1 });
+  }
+
   async createLog(userId: string, logData: {
     exerciseId: string;
+    categoryId: string;
     exerciseName: string;
     category: string;
     date: string;
